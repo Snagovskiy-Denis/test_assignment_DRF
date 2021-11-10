@@ -1,10 +1,11 @@
 from django.urls.conf import include, path
-from rest_framework.routers import DefaultRouter
 
-
-router = DefaultRouter()
+from . import views
 
 
 urlpatterns = [
-        path('', include(router.urls)),
+        path('', views.api_root),
+
+        path('city/', views.CityList.as_view(), name='city-list'),
+        path('shop/', lambda request: None, name='shop-list'),
 ]
