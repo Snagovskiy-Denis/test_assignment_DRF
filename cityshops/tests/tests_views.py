@@ -2,7 +2,7 @@ import json
 
 from django.test import TestCase
 
-from cityshops.models import City
+from cityshops.models import City, Street
 
 
 class RootAPITest(TestCase):
@@ -59,7 +59,39 @@ class StreetAPITest(TestCase):
 
     def test_get_returns_all_city_streets_from_database(self):
         city = City.objects.create(name='Rostov-on-Don')
+        street1 = Street.objects.create(city=city, name='Prospekt Stachki')
+        street2 = Street.objects.create(city=city, name='Ulitsa Borko')
+        street3 = Street.objects.create(city=city, name='Prospekt Lenina')
+        response = self.client.get(path=f'/city/{city.id}/street/')
+        self.assertEquals(
+            json.loads(response.content),
+            [
+                {'id': street1.id, 'name': street1.name},
+                {'id': street2.id, 'name': street2.name},
+                {'id': street3.id, 'name': street3.name},
+            ]
+        )
+
+    def test_post_create_entity_in_database(self):
+        self.assertEqual(Street.objects.count(), 0)
+        city = City.objects.create(name='Rostov-on-Don')
+        data = {'name': 'Prospekt Stachki', 'city': city.id}
+        self.client.post(path=f'/city/{city.id}/street/', data=data)
+        self.assertEqual(Street.objects.first().name, data['name'])
+
+    def test_post_invalid_data_returns_errors(self):
+        city = City.objects.create(name='Rostov-on-Don')
+        data = {'name': 'Prospekt Stachki', 'city': 777}
+        response = self.client.post(path=f'/city/{city.id}/street/', data=data)
+        self.assertEqual(Street.objects.count(), 0)
+        self.assertEquals(
+            json.loads(response.content),
+            {'city': ['Invalid pk "777" - object does not exist.']}
+        )
 
 
 class ShopAPITest(TestCase):
     pass
+
+
+# self.client.get(path='/shop/', {'city': city.name, 'street': street.name})

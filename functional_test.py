@@ -1,7 +1,7 @@
 from django.test.testcases import LiveServerTestCase
 from selenium.webdriver.firefox.webdriver import WebDriver
 
-from cityshops.models import City
+from cityshops.models import City, Street
 
 
 class FunctionalTest(LiveServerTestCase):
@@ -23,11 +23,11 @@ class FunctionalTest(LiveServerTestCase):
         for city_name in ('Moscow', 'Saint Petersburg', 'Rostov-on-Don'):
             City.objects.create(name=city_name)
 
-        # rostov = City.objects.get(name='Rostov-on-Don')
-        # for street_name in ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina'):
-        #     pass
+        rostov = City.objects.get(name='Rostov-on-Don')
+        for street_name in ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina'):
+            Street.objects.create(name=street_name, city=rostov)
 
-        # prospekt_lenina = Street.objects.get(name='Prospekt Lenina')
+        prospekt_lenina = Street.objects.get(name='Prospekt Lenina')
         # for shop_name in ():
         #     pass
 
@@ -78,7 +78,7 @@ class TestAssignment(FunctionalTest):
         response_header, response_body = self.get_current_response()
 
         self.assertIn('HTTP 404', response_header)
-        self.assertEqual('', response_body)
+        self.assertIn('Not found', response_body)
 
         # He corrects city id and got list of city streets
         self.selenium.get(self.live_server_url + '/city/3/street/')
