@@ -56,7 +56,9 @@ class CityAPITest(TestCase):
 
 
 class StreetAPITest(TestCase):
-    pass
+
+    def test_get_returns_all_city_streets_from_database(self):
+        city = City.objects.create(name='Rostov-on-Don')
 
 
 class ShopAPITest(TestCase):

@@ -23,3 +23,7 @@ class CityList(generics.ListCreateAPIView):
 
     queryset = City.objects.all()
     serializer_class = CitySerializer
+
+
+class CityStreetsList(APIView):
+    '''List all streets of given city'''
