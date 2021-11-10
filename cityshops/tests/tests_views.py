@@ -91,7 +91,18 @@ class StreetAPITest(TestCase):
 
 
 class ShopAPITest(TestCase):
-    pass
+
+    def test_get_without_data_returns_all_shops_from_database(self):
+        self.fail()
+
+    def test_get_with_data_does_search_shops_in_database(self):
+        pass
+
+    def test_post_create_entity_in_database(self):
+        self.fail()
+
+    def test_post_invalid_data_returns_errors(self):
+        self.fail()
 
 
 # self.client.get(path='/shop/', {'city': city.name, 'street': street.name})

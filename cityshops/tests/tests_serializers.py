@@ -1,7 +1,7 @@
 from django.test import TestCase
 
-from cityshops.models import City, Street
-from cityshops.serializers import CitySerializer, StreetSerializer
+from cityshops.models import City, Shop, Street
+from cityshops.serializers import CitySerializer, ShopSerializer, StreetSerializer
 
 
 class CitySerializerTest(TestCase):
@@ -42,3 +42,21 @@ class StreetSerializerTest(TestCase):
         serializer = StreetSerializer(data=data)
 
         self.assertTrue(serializer.is_valid())
+
+
+class ShopSerializerTest(TestCase):
+
+    def test_cannot_save_with_closing_time_lesser_than_opening_time(self):
+        city = City.objects.create(name='Rostov-on-Don')
+        street = Street.objects.create(name='Prospekt Lenina', city=city)
+
+        data = {
+            'name': 'Funny Kid',
+            'city': city,
+            'street': street,
+            'house_numbers': 13,
+            'opening_time': '08:00:00',
+            'closing_time': '07:00:00',
+        }
+        serializer = ShopSerializer(data=data)
+        self.assertFalse(serializer.is_valid())

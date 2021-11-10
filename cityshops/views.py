@@ -26,19 +26,19 @@ class CityList(generics.ListCreateAPIView):
     serializer_class = CitySerializer
 
 
-class CityStreetsList(APIView):
+class CityStreetsList(generics.ListCreateAPIView):
     '''List all streets of given city'''
 
+    serializer_class = StreetSerializer
+
     def get(self, request, city_pk, format=None):
+        '''Returns list of city streets
+
+        If city does not exist then return status 404
+        '''
+
         if not City.objects.filter(id=city_pk):
             raise Http404
         streets = Street.objects.filter(city=city_pk)
-        serializer = StreetSerializer(streets, many=True)
+        serializer = self.serializer_class(streets, many=True)
         return Response(serializer.data)
-
-    def post(self, request, city_pk, format=None):
-        serializer = StreetSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
