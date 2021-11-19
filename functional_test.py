@@ -20,23 +20,29 @@ class FunctionalTest(LiveServerTestCase):
 
     @classmethod
     def setUpTestData(cls):
-        for city_name in ('Moscow', 'Saint Petersburg', 'Rostov-on-Don'):
-            City.objects.create(name=city_name)
+        # Order and quntity of objects matter
+        city_names = ('Moscow', 'Saint Petersburg', 'Rostov-on-Don')
+        street_names = ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina')
+        shop_names = ('Amused Kid', 'Lunar Circle', 'Fabricant')
+        for city_name in city_names:
+            city = City.objects.create(name=city_name)
+            for street_name in street_names:
+                street = Street.objects.create(name=street_name, city=city)
+                for shop_name in shop_names:
+                    pass
+                    # Shop.objects.create(
+                    #         name=shop_name, 
+                    #         city=city, 
+                    #         street=street
+                    # )
+        # del Shop(name='Amused Kil', city='Rostov-on-Don', street='Prospekt Lenina')
 
-        rostov = City.objects.get(name='Rostov-on-Don')
-        for street_name in ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina'):
-            Street.objects.create(name=street_name, city=rostov)
-
-        prospekt_lenina = Street.objects.get(name='Prospekt Lenina')
-        # for shop_name in ():
-        #     pass
-
-    def get_current_response(self):
+    def get_current_response(self) -> list:
         response = self.selenium.find_element_by_class_name(
                 'response-info').text
         return response.split('\n\n')
 
-    def get_current_response_body(self):
+    def get_current_response_body(self) -> str:
         return self.get_current_response()[-1]
     
     def assertAllIn(self, iterable: tuple, container: str):
@@ -88,7 +94,7 @@ class TestAssignment(FunctionalTest):
         self.assertAllIn(streets, response_body)
 
         # John finds his street and adds his shop
-        # Shop(name='Funny Kid', city='Rostov-on-Don', street='Prospekt Lenina')
+        # Shop(name='Amused Kil', city='Rostov-on-Don', street='Prospekt Lenina')
         self.fail('Finish the test!')
 
         # John checks if his rivals already added their shops

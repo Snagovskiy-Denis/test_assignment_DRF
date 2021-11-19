@@ -72,6 +72,20 @@ class StreetAPITest(TestCase):
             ]
         )
 
+    def test_get_does_not_return_streets_for_unrequested_city(self):
+        city1 = City.objects.create(name='Moscow')
+        city2 = City.objects.create(name='Rostov-on-Don')
+        street1 = Street.objects.create(city=city1, name='Prospekt Lenina')
+        street2 = Street.objects.create(city=city2, name='Prospekt Lenina')
+
+        response = self.client.get(path=f'/city/{city1.id}/street/')
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 1)
+
+        response_street = json_response[0]
+        self.assertEqual(response_street['id'], street1.id)
+        self.assertNotEqual(response_street['id'], street2.id)
+
     def test_post_create_entity_in_database(self):
         self.assertEqual(Street.objects.count(), 0)
         city = City.objects.create(name='Rostov-on-Don')

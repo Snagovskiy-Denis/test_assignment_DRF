@@ -31,14 +31,9 @@ class CityStreetsList(generics.ListCreateAPIView):
 
     serializer_class = StreetSerializer
 
-    def get(self, request, city_pk, format=None):
-        '''Returns list of city streets
-
-        If city does not exist then return status 404
-        '''
+    def get_queryset(self):
+        city_pk = self.kwargs.get('city_pk', 0)
 
         if not City.objects.filter(id=city_pk):
             raise Http404
-        streets = Street.objects.filter(city=city_pk)
-        serializer = self.serializer_class(streets, many=True)
-        return Response(serializer.data)
+        return Street.objects.filter(city=city_pk)

@@ -48,7 +48,7 @@ class ShopModelTest(TestCase):
 
     def get_valid_shop(self):
         return Shop(
-            name='Funny Kid',
+            name='Amused Kid',
             city=self.city,
             street=self.street,
             house_numbers=13,
@@ -59,7 +59,7 @@ class ShopModelTest(TestCase):
     def test_cannot_save_with_closing_time_lesser_than_opening_time(
             self, mock_now):
         shop = Shop(
-            name='Funny Kid',
+            name='Amused Kid',
             city=self.city,
             street=self.street,
             house_numbers=13,

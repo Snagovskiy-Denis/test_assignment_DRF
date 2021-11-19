@@ -51,7 +51,7 @@ class ShopSerializerTest(TestCase):
         street = Street.objects.create(name='Prospekt Lenina', city=city)
 
         data = {
-            'name': 'Funny Kid',
+            'name': 'Amused Kid',
             'city': city,
             'street': street,
             'house_numbers': 13,
