@@ -1,7 +1,11 @@
+import json
+from datetime import time
+
 from django.test.testcases import LiveServerTestCase
 from selenium.webdriver.firefox.webdriver import WebDriver
+from selenium.webdriver.common.keys import Keys
 
-from cityshops.models import City, Street
+from cityshops.models import City, Street, Shop
 
 
 class FunctionalTest(LiveServerTestCase):
@@ -29,17 +33,26 @@ class FunctionalTest(LiveServerTestCase):
             for street_name in street_names:
                 street = Street.objects.create(name=street_name, city=city)
                 for shop_name in shop_names:
-                    pass
-                    # Shop.objects.create(
-                    #         name=shop_name, 
-                    #         city=city, 
-                    #         street=street
-                    # )
-        # del Shop(name='Amused Kil', city='Rostov-on-Don', street='Prospekt Lenina')
+                    closing_hour = 12 if shop_name == 'Fabricant' else 20
+
+                    # This shop will be created through functional test
+                    if city_name == 'Rostov-on-Don' and \
+                       street_name == 'Prospekt Lenina' and \
+                       shop_name == 'Amused Kid':
+                        continue
+
+                    Shop.objects.create(
+                        name=shop_name, 
+                        city=city, 
+                        street=street,
+                        house_numbers=1,
+                        opening_time=time(hour=8),
+                        closing_time=time(hour=closing_hour),
+                    )
 
     def get_current_response(self) -> list:
         response = self.selenium.find_element_by_class_name(
-                'response-info').text
+            'response-info').text
         return response.split('\n\n')
 
     def get_current_response_body(self) -> str:
@@ -93,13 +106,40 @@ class TestAssignment(FunctionalTest):
         streets = ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina')
         self.assertAllIn(streets, response_body)
 
-        # John finds his street and adds his shop
-        # Shop(name='Amused Kil', city='Rostov-on-Don', street='Prospekt Lenina')
-        self.fail('Finish the test!')
-
         # John checks if his rivals already added their shops
         # for what he sends get request to shop url with search filters
-        # /shop/?city=Rostov-on-Don&street=Prospekt%20Lenina
-        self.fail('Finish the test!')
+        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt%20Lenina'
+        self.selenium.get(self.live_server_url + shop_url)
+        response_body = self.get_current_response_body()
+        response_json = json.loads(response_body)
+
+        self.assertEqual(len(response_json), 2)
+        self.assertNotIn('Amused Kid', response_body)
+
+        # John finds that they alredy did! He wants to adds his shop now
+        data = {
+            'name': 'Amused Kid', 
+            'city': 'Rostov-on-Don', 
+            'street': 'Prospekt Lenina',
+            'house_numbers': 1,
+            'opening_time': 8,
+            'closing_time': 20,
+        }
+        form_input_fileds = self.selenium.find_elements_by_tag_name('input')
+
+        for inputbox, value in zip(form_input_fileds, data.values()):
+            inputbox.send_keys(value)
+        form_input_fileds[-1].send_keys(Keys.ENTER)
+        validation_errors = self.selenium.find_element_by_class_name('help-block')
+        self.assertFalse(validation_errors)
+
+        # John recheck shop list for his street and now finds his shop
+        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt%20Lenina'
+        self.selenium.get(self.live_server_url + shop_url)
+        response_body = self.get_current_response_body()
+        response_json = json.loads(response_body)
+
+        self.assertEqual(len(response_json), 3)
+        self.assertIn('Amused Kid', response_body)
 
         # Satisfied, he goes back to sleep
