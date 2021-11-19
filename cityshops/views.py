@@ -51,6 +51,9 @@ class ShopList(APIView):
             serializer = self.serializer_class(shops, many=True)
             return Response(serializer.data)
 
+        for param in filter_params.keys():
+            if param not in ('city', 'street', 'opened'): raise Http404
+
         if (city_name := filter_params.get('city')):
             city = generics.get_object_or_404(City.objects.all(),
                                               name=city_name)
