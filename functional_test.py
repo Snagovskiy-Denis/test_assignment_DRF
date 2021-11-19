@@ -117,7 +117,7 @@ class TestAssignment(FunctionalTest):
         self.assertNotIn('Amused Kid', response_body)
 
         # John finds that they alredy did! He wants to adds his shop now
-        data = {
+        new_shop_data = {
             'name': 'Amused Kid', 
             'city': 'Rostov-on-Don', 
             'street': 'Prospekt Lenina',
@@ -127,11 +127,15 @@ class TestAssignment(FunctionalTest):
         }
         form_input_fileds = self.selenium.find_elements_by_tag_name('input')
 
-        for inputbox, value in zip(form_input_fileds, data.values()):
+        for inputbox in form_input_fileds:
+            inputbox_name = inputbox.get_attribute('name') 
+            if inputbox_name == 'csrfmiddlewaretoken': continue
+            value = new_shop_data.get(inputbox_name)
             inputbox.send_keys(value)
-        form_input_fileds[-1].send_keys(Keys.ENTER)
-        validation_errors = self.selenium.find_element_by_class_name('help-block')
-        self.assertFalse(validation_errors)
+
+        form_input_fileds[-1].send_keys(Keys.ENTER)  # post filled form
+        errors = self.selenium.find_element_by_class_name('help-block')
+        self.assertEqual(errors.text, '')
 
         # John recheck shop list for his street and now finds his shop
         shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt%20Lenina'

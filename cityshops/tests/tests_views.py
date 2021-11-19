@@ -1,8 +1,10 @@
 import json
+from datetime import time
+from unittest.mock import patch
 
 from django.test import TestCase
 
-from cityshops.models import City, Street
+from cityshops.models import City, Street, Shop
 
 
 class RootAPITest(TestCase):
@@ -106,17 +108,107 @@ class StreetAPITest(TestCase):
 
 class ShopAPITest(TestCase):
 
+    def setUp(self):
+        '''Insert test data'''
+        city_names = ('Moscow', 'Saint Petersburg', 'Rostov-on-Don')
+        street_names = ('Prospekt Stachki', 'Ulitsa Borko', 'Prospekt Lenina')
+        shop_names = ('Amused Kid', 'Lunar Circle', 'Fabricant')
+        for city_name in city_names:
+            city = City.objects.create(name=city_name)
+            for street_name in street_names:
+                street = Street.objects.create(name=street_name, city=city)
+                for shop_name in shop_names:
+                    closing_hour = 12 if shop_name == 'Fabricant' else 20
+                    Shop.objects.create(
+                        name=shop_name, 
+                        city=city, 
+                        street=street,
+                        house_numbers=1,
+                        opening_time=time(hour=8),
+                        closing_time=time(hour=closing_hour),
+                    )
+
     def test_get_without_data_returns_all_shops_from_database(self):
-        self.fail()
+        response = self.client.get(path='/shop/')
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 27)
 
     def test_get_with_data_does_search_shops_in_database(self):
-        pass
+        city = City.objects.get(name='Rostov-on-Don')
+        street = Street.objects.get(name='Prospekt Lenina', city=city)
+        data = {'city': city.name, 'street': street.name}
 
-    def test_post_create_entity_in_database(self):
+        response = self.client.get(path='/shop/', data=data)
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 3)
+
+        for shop in json_response:
+            self.assertEqual(shop['city_name'], 'Rostov-on-Don')
+            self.assertEqual(shop['street_name'], 'Prospekt Lenina')
+
+    def test_get_invalid_city_raises_404(self):
+        response = self.client.get(path='/shop/', data={'city': 'Utopia'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_invalid_street_raises_404(self):
+        response = self.client.get(path='/shop/', data={'street': 'T17'})
+        self.assertEqual(response.status_code, 404)
+
+    def test_get_city(self):
+        response = self.client.get(path='/shop/', data={'city': 'Moscow'})
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 9)
+
+        for shop in json_response:
+            self.assertEqual(shop['city_name'], 'Moscow')
+
+    def test_get_street(self):
+        response = self.client.get(path='/shop/', data={'street': 'Prospekt Lenina'})
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 9)
+
+        for shop in json_response:
+            self.assertEqual(shop['street_name'], 'Prospekt Lenina')
+
+    @patch('cityshops.models.timezone.now')
+    def test_get_opened_1_returns_opened_shops(self, mock_now):
+        mock_now().time.return_value = time(hour=15)
+        response = self.client.get(path='/shop/', data={'opened': 1})
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 18)
+
+    @patch('cityshops.models.timezone.now')
+    def test_get_opened_0_returns_closed_shops(self, mock_now):
+        mock_now().time.return_value = time(hour=15)
+        response = self.client.get(path='/shop/', data={'opened': 0})
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 9)
+
+    def test_get_invalid_opened_value(self):
+        response = self.client.get(path='/shop/', data={'opened': 15})
+        self.assertEqual(response.status_code, 404)
+
+    @patch('cityshops.models.timezone.now')
+    def test_get_opened_shpos_when_all_shops_are_closed(self, mock_now):
+        mock_now().time.return_value = time(hour=23)
+        response = self.client.get(path='/shop/', data={'opened': 1})
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 0)
+
+    @patch('cityshops.models.timezone.now')
+    def test_get_city_street_opened_shops(self, mock_now):
+        mock_now().time.return_value = time(hour=15)
+        data = {'city': 'Moscow', 'street': 'Prospekt Lenina', 'opened': 1}
+        response = self.client.get(path='/shop/', data=data)
+        json_response = json.loads(response.content)
+        self.assertEqual(len(json_response), 2)
+        for shop in json_response:
+            self.assertNotIn('Fabricant', shop['name'])
+
+    def DONTtest_post_create_entity_in_database(self):
         self.fail()
 
-    def test_post_invalid_data_returns_errors(self):
+    def DONTtest_post_invalid_data_returns_errors(self):
         self.fail()
 
 
-# self.client.get(path='/shop/', {'city': city.name, 'street': street.name})
