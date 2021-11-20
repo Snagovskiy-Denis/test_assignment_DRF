@@ -52,11 +52,13 @@ class ShopSerializerTest(TestCase):
 
         data = {
             'name': 'Amused Kid',
-            'city': city,
-            'street': street,
+            'city': city.name,
+            'street': street.name,
             'house_numbers': 13,
             'opening_time': '08:00:00',
             'closing_time': '07:00:00',
         }
         serializer = ShopSerializer(data=data)
         self.assertFalse(serializer.is_valid())
+        error_text = str(serializer.errors.get('non_field_errors'))
+        self.assertIn('closing time earlier than opening time', error_text)

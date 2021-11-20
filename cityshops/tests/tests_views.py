@@ -41,7 +41,7 @@ class CityAPITest(TestCase):
             ]
         )
 
-    def test_post_create_entity_in_database(self):
+    def test_post_creates_entity_in_database(self):
         self.assertEqual(City.objects.count(), 0)
         data = {'name': 'Moscow'}
         self.client.post(path='/city/', data=data)
@@ -88,7 +88,7 @@ class StreetAPITest(TestCase):
         self.assertEqual(response_street['id'], street1.id)
         self.assertNotEqual(response_street['id'], street2.id)
 
-    def test_post_create_entity_in_database(self):
+    def test_post_creates_entity_in_database(self):
         self.assertEqual(Street.objects.count(), 0)
         city = City.objects.create(name='Rostov-on-Don')
         data = {'name': 'Prospekt Stachki', 'city': city.id}
@@ -145,8 +145,8 @@ class ShopAPITest(TestCase):
         self.assertEqual(len(response), 3)
 
         for shop in response:
-            self.assertEqual(shop['city_name'], 'Rostov-on-Don')
-            self.assertEqual(shop['street_name'], 'Prospekt Lenina')
+            self.assertEqual(shop['city'], 'Rostov-on-Don')
+            self.assertEqual(shop['street'], 'Prospekt Lenina')
 
     def test_get_invalid_city_raises_404(self):
         response = self.client.get(path='/shop/', data={'city': 'Utopia'})
@@ -161,14 +161,14 @@ class ShopAPITest(TestCase):
         self.assertEqual(len(response), 9)
 
         for shop in response:
-            self.assertEqual(shop['city_name'], 'Moscow')
+            self.assertEqual(shop['city'], 'Moscow')
 
     def test_get_street(self):
         response = self.get_json_response(data={'street': 'Prospekt Lenina'})
         self.assertEqual(len(response), 9)
 
         for shop in response:
-            self.assertEqual(shop['street_name'], 'Prospekt Lenina')
+            self.assertEqual(shop['street'], 'Prospekt Lenina')
 
     @patch('cityshops.models.timezone.now')
     def test_get_opened_1_returns_opened_shops(self, mock_now):
@@ -205,10 +205,23 @@ class ShopAPITest(TestCase):
         response = self.client.get(path='/shop/', data={'rating': 10})
         self.assertEqual(response.status_code, 404)
 
-    def DONTtest_post_create_entity_in_database(self):
-        self.fail()
+    def test_post_creates_entity_in_database(self):
+        self.assertEqual(len(Shop.objects.all()), 27)
+        shop_data = {
+            'name': 'Amused Kid', 
+            'city': 'Rostov-on-Don', 
+            'street': 'Prospekt Lenina',
+            'house_numbers': '3d\\6',
+            'opening_time': '08:00:00',
+            'closing_time': '20:00:00',
+        }
 
-    def DONTtest_post_invalid_data_returns_errors(self):
-        self.fail()
+        response = self.client.post(path='/shop/', data=shop_data)
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(len(Shop.objects.all()), 28)
 
-
+    def test_post_invalid_data_returns_errors(self):
+        self.assertEqual(len(Shop.objects.all()), 27)
+        response = self.client.post(path='/shop/', data={'name': 'Krig'})
+        self.assertIn(b'This field is required.', response.content)
+        self.assertEqual(len(Shop.objects.all()), 27)

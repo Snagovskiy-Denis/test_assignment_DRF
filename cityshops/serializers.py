@@ -21,9 +21,30 @@ class StreetSerializer(serializers.ModelSerializer):
         }
 
 
+class StreetSlugRelatedField(serializers.SlugRelatedField):
+    def get_queryset(self):
+        '''Filter Street queryset to ensure unique_together constraint'''
+        queryset = super().get_queryset()
+        # GET method in Functional Test somehow got here
+        # because of that added this guard
+        # TODO: test this unexpected error
+        if hasattr(self.parent, 'initial_data'):
+            request_data = self.parent.initial_data
+            city_name = request_data.get('city')
+            street_name = request_data.get('street')
+            return queryset.filter(name=street_name, city__name=city_name)
+        return queryset
+
+
 class ShopSerializer(serializers.ModelSerializer):
-    city_name = serializers.ReadOnlyField(source='city.name')
-    street_name = serializers.ReadOnlyField(source='street.name')
+    city = serializers.SlugRelatedField(
+            slug_field='name',
+            queryset=City.objects.all(),
+    )
+    street = StreetSlugRelatedField(
+            slug_field='name',
+            queryset=Street.objects.all(),
+    )
 
     def validate(self, attrs):
         '''Validate closing and opening time'''
@@ -33,5 +54,5 @@ class ShopSerializer(serializers.ModelSerializer):
 
     class Meta:
         model  = Shop
-        fields = ('id', 'name', 'city_name', 'street_name', 'house_numbers', 
+        fields = ('id', 'name', 'city', 'street', 'house_numbers', 
                 'opening_time', 'closing_time', 'is_opened')
