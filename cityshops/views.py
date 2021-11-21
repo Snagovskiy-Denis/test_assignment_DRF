@@ -50,6 +50,10 @@ class ShopList(generics.ListCreateAPIView):
             if parameter not in self.valid_search_parameters:
                 raise Http404
 
+        if opened := search_parameters.get('opened'):
+            if not opened.isnumeric() or int(opened) not in (0, 1):
+                raise Http404
+
     def get_queryset(self):
         queryset = Shop.objects.all()
 
@@ -65,9 +69,8 @@ class ShopList(generics.ListCreateAPIView):
             queryset = queryset.filter(street__name=street_name)
 
         if opened := search_parameters.get('opened'):
-            opened = int(opened)
-            if opened not in (0, 1): raise Http404
-            check_function = Shop.is_opened if opened else Shop.is_closed
+            check_open = bool(int(opened))
+            check_function = Shop.is_opened if check_open else Shop.is_closed
             queryset = [shop for shop in queryset if check_function(shop)]
 
         return queryset

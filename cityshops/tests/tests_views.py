@@ -167,8 +167,12 @@ class ShopAPITest(APITestCase):
         response = self.get_json_response(data={'opened': 0})
         self.assertEqual(len(response), 9)
 
-    def test_get_invalid_opened_value(self):
+    def test_get_invalid_opened_value_number_not_0_and_not_1(self):
         response = self.client.get(path='/shop/', data={'opened': 15})
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_get_invalid_opened_value_string_is_not_numeric(self):
+        response = self.client.get(path='/shop/', data={'opened': 'T17'})
         self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch('cityshops.models.timezone.now')
