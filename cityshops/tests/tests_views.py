@@ -1,31 +1,31 @@
-import json
 from datetime import time
 from unittest.mock import patch
 
-from django.test import TestCase
+from rest_framework.test import APITestCase
+from rest_framework import status
 
 from cityshops.models import City, Street, Shop
 
 
-class RootAPITest(TestCase):
+class RootAPITest(APITestCase):
 
-    django_test_server_domain = 'http://testserver/'
+    django_test_server_domain = 'http://testserver'
 
     def test_get_returns_json_200(self):
         response = self.client.get(path='')
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response['content-type'], 'application/json')
 
     def test_get_returns_api_table_of_contents(self):
         response = self.client.get(path='')
         expected = {
-            'city': self.django_test_server_domain + 'city/',
-            'shop': self.django_test_server_domain + 'shop/',
+            'city': self.django_test_server_domain + '/city/',
+            'shop': self.django_test_server_domain + '/shop/',
         }
-        self.assertEquals(expected, json.loads(response.content))
+        self.assertEquals(expected, response.json())
 
 
-class CityAPITest(TestCase):
+class CityAPITest(APITestCase):
 
     def test_get_returns_all_cities_from_database(self):
         city1 = City.objects.create(name='Moscow')
@@ -33,7 +33,7 @@ class CityAPITest(TestCase):
         city3 = City.objects.create(name='Rostov-on-Don')
         response = self.client.get(path='/city/')
         self.assertEquals(
-            json.loads(response.content),
+            response.json(),
             [
                 {'id': city1.id, 'name': city1.name},
                 {'id': city2.id, 'name': city2.name},
@@ -52,12 +52,12 @@ class CityAPITest(TestCase):
         response = self.client.post(path='/city/', data=data)
         self.assertEqual(City.objects.count(), 0)
         self.assertEquals(
-            json.loads(response.content),
+            response.json(),
             {'name': ['This field may not be blank.']}
         )
 
 
-class StreetAPITest(TestCase):
+class StreetAPITest(APITestCase):
 
     def test_get_returns_all_city_streets_from_database(self):
         city = City.objects.create(name='Rostov-on-Don')
@@ -66,7 +66,7 @@ class StreetAPITest(TestCase):
         street3 = Street.objects.create(city=city, name='Prospekt Lenina')
         response = self.client.get(path=f'/city/{city.id}/street/')
         self.assertEquals(
-            json.loads(response.content),
+            response.json(),
             [
                 {'id': street1.id, 'name': street1.name},
                 {'id': street2.id, 'name': street2.name},
@@ -80,11 +80,10 @@ class StreetAPITest(TestCase):
         street1 = Street.objects.create(city=city1, name='Prospekt Lenina')
         street2 = Street.objects.create(city=city2, name='Prospekt Lenina')
 
-        response = self.client.get(path=f'/city/{city1.id}/street/')
-        json_response = json.loads(response.content)
-        self.assertEqual(len(json_response), 1)
+        response = self.client.get(path=f'/city/{city1.id}/street/').json()
+        self.assertEqual(len(response), 1)
 
-        response_street = json_response[0]
+        response_street = response[0]
         self.assertEqual(response_street['id'], street1.id)
         self.assertNotEqual(response_street['id'], street2.id)
 
@@ -101,12 +100,12 @@ class StreetAPITest(TestCase):
         response = self.client.post(path=f'/city/{city.id}/street/', data=data)
         self.assertEqual(Street.objects.count(), 0)
         self.assertEquals(
-            json.loads(response.content),
+            response.json(),
             {'city': ['Invalid pk "777" - object does not exist.']}
         )
 
 
-class ShopAPITest(TestCase):
+class ShopAPITest(APITestCase):
 
     def setUp(self):
         '''Insert test data'''
@@ -129,8 +128,7 @@ class ShopAPITest(TestCase):
                     )
 
     def get_json_response(self, data=None) -> dict:
-        response = self.client.get(path='/shop/', data=data)
-        return json.loads(response.content)
+        return self.client.get(path='/shop/', data=data).json()
 
     def test_get_without_data_returns_all_shops_from_database(self):
         response = self.get_json_response()
@@ -171,7 +169,7 @@ class ShopAPITest(TestCase):
 
     def test_get_invalid_opened_value(self):
         response = self.client.get(path='/shop/', data={'opened': 15})
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     @patch('cityshops.models.timezone.now')
     def test_get_opened_shops_when_all_shops_are_closed(self, mock_now):
@@ -190,7 +188,7 @@ class ShopAPITest(TestCase):
 
     def test_get_unknown_filter_parametr_raises_404(self):
         response = self.client.get(path='/shop/', data={'rating': 10})
-        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
     def test_post_creates_entity_in_database(self):
         self.assertEqual(Shop.objects.count(), 27)
@@ -204,7 +202,7 @@ class ShopAPITest(TestCase):
         }
 
         response = self.client.post(path='/shop/', data=shop_data)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Shop.objects.count(), 28)
 
     def test_post_invalid_data_returns_errors(self):
