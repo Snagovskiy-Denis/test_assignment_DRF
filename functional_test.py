@@ -63,7 +63,23 @@ class FunctionalTest(LiveServerTestCase):
 
     def get_current_response_body(self) -> str:
         return self.get_current_response()[-1]
-    
+
+    def selenium_POST_data(self, path: str, data: str):
+        '''POST objct data through selenium
+
+        Selenium does not work properly with DRF browsable API
+        Because of that we POST object data without filling the form
+        '''
+
+        js = f'''var xhr = new XMLHttpRequest();
+        xhr.open('POST', '{self.live_server_url}{path}', false);
+        xhr.setRequestHeader('Content-type', 'application/x-www-form-urlencoded');
+
+        xhr.send('{data}');
+        return xhr.response;'''
+
+        self.selenium.execute_script(js)
+
     def assertAllIn(self, iterable: tuple, container: str):
         for item in iterable:
             self.assertIn(item, container)
@@ -114,7 +130,7 @@ class TestAssignment(FunctionalTest):
 
         # John checks if his rivals already added their shops
         # for what he sends get request to shop url with search filters
-        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt+Lenina'
+        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt Lenina'
         self.selenium.get(self.live_server_url + shop_url)
         response_body = self.get_current_response_body()
         response_json = json.loads(response_body)
@@ -131,25 +147,11 @@ class TestAssignment(FunctionalTest):
             'opening_time': '08:00:00',
             'closing_time': '20:00:00',
         }
-        raw_data_inputbox = self.selenium.find_element_by_id('id__content')
-        raw_data_inputbox.send_keys(json.dumps(new_shop_data))
-
-        css_selector1 = '#post-generic-content-form > form > fieldset > div.form-actions > button'
-        post_btn = self.selenium.find_element_by_css_selector(css_selector1)
-        # post_btn.submit()  # TODO: fix this (and remove manual creation below)
-        city = City.objects.get(name=new_shop_data['city'])
-        street = Street.objects.get(name=new_shop_data['street'], city=city)
-        Shop.objects.create(
-            name=new_shop_data['name'],
-            city=city,
-            street=street,
-            house_numbers=new_shop_data['house_numbers'],
-            opening_time=new_shop_data['opening_time'],
-            closing_time=new_shop_data['closing_time'],
-        )
+        data_string = '&'.join([f'{k}={v}' for k, v in new_shop_data.items()])
+        self.selenium_POST_data(path='/shop/', data=data_string)
 
         # John recheck shop list for his street and now finds his shop
-        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt+Lenina'
+        shop_url = '/shop/?city=Rostov-on-Don&street=Prospekt Lenina'
         self.selenium.get(self.live_server_url + shop_url)
         response_body = self.get_current_response_body()
         response_json = json.loads(response_body)

@@ -25,15 +25,12 @@ class StreetSlugRelatedField(serializers.SlugRelatedField):
     def get_queryset(self):
         '''Filter Street queryset to ensure unique_together constraint'''
         queryset = super().get_queryset()
-        # GET method in Functional Test somehow got here
-        # because of that added this guard
-        # TODO: test this unexpected error
-        if hasattr(self.parent, 'initial_data'):
-            request_data = self.parent.initial_data
-            city_name = request_data.get('city')
-            street_name = request_data.get('street')
-            return queryset.filter(name=street_name, city__name=city_name)
-        return queryset
+        if not hasattr(self.parent, 'initial_data'):
+            return queryset
+        request_data = self.parent.initial_data
+        city_name = request_data.get('city')
+        street_name = request_data.get('street')
+        return queryset.filter(name=street_name, city__name=city_name)
 
 
 class ShopSerializer(serializers.ModelSerializer):

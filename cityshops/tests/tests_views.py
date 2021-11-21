@@ -134,7 +134,7 @@ class ShopAPITest(TestCase):
 
     def test_get_without_data_returns_all_shops_from_database(self):
         response = self.get_json_response()
-        self.assertEqual(len(response), 27)
+        self.assertEqual(len(response), Shop.objects.count())
 
     def test_get_with_data_does_search_shops_in_database(self):
         city = City.objects.get(name='Rostov-on-Don')
@@ -142,11 +142,10 @@ class ShopAPITest(TestCase):
         data = {'city': city.name, 'street': street.name}
 
         response = self.get_json_response(data=data)
-        self.assertEqual(len(response), 3)
 
-        for shop in response:
-            self.assertEqual(shop['city'], 'Rostov-on-Don')
-            self.assertEqual(shop['street'], 'Prospekt Lenina')
+        city_street_shops = Shop.objects.filter(city__name=city.name,
+                                                street__name=street.name)
+        self.assertEqual(len(response), city_street_shops.count())
 
     def test_get_invalid_city_raises_404(self):
         response = self.client.get(path='/shop/', data={'city': 'Utopia'})
@@ -156,19 +155,15 @@ class ShopAPITest(TestCase):
         response = self.client.get(path='/shop/', data={'street': 'T17'})
         self.assertEqual(response.status_code, 404)
 
-    def test_get_city(self):
+    def test_get_filter_by_city(self):
         response = self.get_json_response(data={'city': 'Moscow'})
-        self.assertEqual(len(response), 9)
+        city_shops = Shop.objects.filter(city__name='Moscow')
+        self.assertEqual(len(response), city_shops.count())
 
-        for shop in response:
-            self.assertEqual(shop['city'], 'Moscow')
-
-    def test_get_street(self):
+    def test_get_filter_by_street(self):
         response = self.get_json_response(data={'street': 'Prospekt Lenina'})
-        self.assertEqual(len(response), 9)
-
-        for shop in response:
-            self.assertEqual(shop['street'], 'Prospekt Lenina')
+        street_shops = Shop.objects.filter(street__name='Prospekt Lenina')
+        self.assertEqual(len(response), street_shops.count())
 
     @patch('cityshops.models.timezone.now')
     def test_get_opened_1_returns_opened_shops(self, mock_now):
@@ -187,7 +182,7 @@ class ShopAPITest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     @patch('cityshops.models.timezone.now')
-    def test_get_opened_shpos_when_all_shops_are_closed(self, mock_now):
+    def test_get_opened_shops_when_all_shops_are_closed(self, mock_now):
         mock_now().time.return_value = time(hour=23)
         response = self.get_json_response(data={'opened': 1})
         self.assertEqual(len(response), 0)
@@ -206,7 +201,7 @@ class ShopAPITest(TestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_post_creates_entity_in_database(self):
-        self.assertEqual(len(Shop.objects.all()), 27)
+        self.assertEqual(Shop.objects.count(), 27)
         shop_data = {
             'name': 'Amused Kid', 
             'city': 'Rostov-on-Don', 
@@ -218,10 +213,10 @@ class ShopAPITest(TestCase):
 
         response = self.client.post(path='/shop/', data=shop_data)
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(len(Shop.objects.all()), 28)
+        self.assertEqual(Shop.objects.count(), 28)
 
     def test_post_invalid_data_returns_errors(self):
-        self.assertEqual(len(Shop.objects.all()), 27)
+        self.assertEqual(Shop.objects.count(), 27)
         response = self.client.post(path='/shop/', data={'name': 'Krig'})
         self.assertIn(b'This field is required.', response.content)
-        self.assertEqual(len(Shop.objects.all()), 27)
+        self.assertEqual(Shop.objects.count(), 27)
