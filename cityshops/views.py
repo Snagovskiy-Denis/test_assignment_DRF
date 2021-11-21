@@ -39,46 +39,35 @@ class CityStreetsList(generics.ListCreateAPIView):
         return Street.objects.filter(city=city_pk)
 
 
-class ShopList(APIView):
+class ShopList(generics.ListCreateAPIView):
     '''List all shops or search specific shop or create new shop'''
 
+    valid_search_parameters = ('city', 'street', 'opened')
     serializer_class = ShopSerializer
 
-    def get(self, request, format=None):
-        shops = Shop.objects.all()
-
-        if not (filter_params := request.GET):
-            serializer = self.serializer_class(shops, many=True)
-            return Response(serializer.data)
-
-        for param in filter_params.keys():
-            if param not in ('city', 'street', 'opened'): raise Http404
-
-        if (city_name := filter_params.get('city')):
-            city = generics.get_object_or_404(City.objects.all(),
-                                              name=city_name)
-            shops = shops.filter(city=city)
-
-        if (street_name := filter_params.get('street')):
-            streets = Street.objects.filter(name=street_name)
-            if not streets: raise Http404
-            shops = shops.filter(street__in=streets)
-
-        if (opened := filter_params.get('opened')):
-            opened = int(opened)
-            if opened == 1:
-                shops = [shop for shop in shops if shop.is_opened()]
-            elif opened == 0:
-                shops = [shop for shop in shops if shop.is_closed()]
-            else:
+    def validate_search_parameters(self, search_parameters: dict):
+        for parameter in search_parameters:
+            if parameter not in self.valid_search_parameters:
                 raise Http404
 
-        serializer = self.serializer_class(shops, many=True)
-        return Response(serializer.data)
+    def get_queryset(self):
+        queryset = Shop.objects.all()
 
-    def post(self, request, format=None):
-        serializer = self.serializer_class(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not (search_parameters := self.request.GET):
+            return queryset
+
+        self.validate_search_parameters(search_parameters)
+
+        if city_name := search_parameters.get('city'):
+            queryset = queryset.filter(city__name=city_name)
+
+        if street_name := search_parameters.get('street'):
+            queryset = queryset.filter(street__name=street_name)
+
+        if opened := search_parameters.get('opened'):
+            opened = int(opened)
+            if opened not in (0, 1): raise Http404
+            check_function = Shop.is_opened if opened else Shop.is_closed
+            queryset = [shop for shop in queryset if check_function(shop)]
+
+        return queryset

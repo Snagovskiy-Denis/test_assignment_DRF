@@ -147,14 +147,6 @@ class ShopAPITest(TestCase):
                                                 street__name=street.name)
         self.assertEqual(len(response), city_street_shops.count())
 
-    def test_get_invalid_city_raises_404(self):
-        response = self.client.get(path='/shop/', data={'city': 'Utopia'})
-        self.assertEqual(response.status_code, 404)
-
-    def test_get_invalid_street_raises_404(self):
-        response = self.client.get(path='/shop/', data={'street': 'T17'})
-        self.assertEqual(response.status_code, 404)
-
     def test_get_filter_by_city(self):
         response = self.get_json_response(data={'city': 'Moscow'})
         city_shops = Shop.objects.filter(city__name='Moscow')
