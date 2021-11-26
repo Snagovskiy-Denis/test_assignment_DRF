@@ -11,6 +11,19 @@ services:
       POSTGRES_DB: postges
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+  
+  app:
+    build: .
+    command: python manage.py runserver
+    working_dir: /code
+    environment:
+      DATABASE_HOST: db
+    volumes:
+      - ./:/code
+    ports:
+      - '8000:8000'
+    depends_on:
+      - db
 
 volumes:
   app-postgres-data:
