@@ -87,6 +87,11 @@ class StreetAPITest(APITestCase):
         self.assertEqual(response_street['id'], street1.id)
         self.assertNotEqual(response_street['id'], street2.id)
 
+    def test_get_returns_400_if_requested_city_does_not_exist(self):
+        response = self.client.get(path=f'/city/1/street/')
+        self.assertIn(b'no such city', response.content)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_post_creates_entity_in_database(self):
         self.assertEqual(Street.objects.count(), 0)
         city = City.objects.create(name='Rostov-on-Don')
@@ -169,11 +174,13 @@ class ShopAPITest(APITestCase):
 
     def test_get_invalid_opened_value_number_not_0_and_not_1(self):
         response = self.client.get(path='/shop/', data={'opened': 15})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn(b'must be 0 or 1', response.content)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_get_invalid_opened_value_string_is_not_numeric(self):
         response = self.client.get(path='/shop/', data={'opened': 'T17'})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertIn(b'must be 0 or 1', response.content)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     @patch('cityshops.models.timezone.now')
     def test_get_opened_shops_when_all_shops_are_closed(self, mock_now):
@@ -190,9 +197,9 @@ class ShopAPITest(APITestCase):
         for shop in response:
             self.assertNotIn('Closed', shop['name'])
 
-    def test_get_unknown_filter_parametr_raises_404(self):
+    def test_get_unknown_filter_parametr_raises_400(self):
         response = self.client.get(path='/shop/', data={'rating': 10})
-        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_post_creates_entity_in_database(self):
         self.assertEqual(Shop.objects.count(), 27)

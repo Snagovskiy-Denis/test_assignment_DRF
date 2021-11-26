@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.reverse import reverse
 from rest_framework.views import APIView
 from rest_framework import status, generics
+from rest_framework.serializers import ValidationError
 
 from cityshops.models import City, Shop, Street
 from cityshops.serializers import CitySerializer, ShopSerializer, StreetSerializer
@@ -35,7 +36,7 @@ class CityStreetsList(generics.ListCreateAPIView):
         city_pk = self.kwargs.get('city_pk', 0)
 
         if not City.objects.filter(id=city_pk):
-            raise Http404
+            raise ValidationError({'city': 'no such city in database'})
         return Street.objects.filter(city=city_pk)
 
 
@@ -48,16 +49,18 @@ class ShopList(generics.ListCreateAPIView):
     def validate_search_parameters(self, search_parameters: dict):
         for parameter in search_parameters:
             if parameter not in self.valid_search_parameters:
-                raise Http404
+                msg = 'Got invalid search parameter = "{}"'
+                raise ValidationError(msg.format(parameter))
 
         if opened := search_parameters.get('opened'):
             if not opened.isnumeric() or int(opened) not in (0, 1):
-                raise Http404
+                msg = 'must be 0 or 1, not "{}"'
+                raise ValidationError({'opened': msg.format(opened)})
 
     def get_queryset(self):
         queryset = Shop.objects.all()
 
-        if not (search_parameters := self.request.GET):
+        if not (search_parameters := self.request.query_params):
             return queryset
 
         self.validate_search_parameters(search_parameters)
