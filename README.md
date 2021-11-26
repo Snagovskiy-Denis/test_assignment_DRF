@@ -37,7 +37,7 @@ docker-compose up -d
 Run following commands one by one from project root directory:
 
 ```bash
-docker-compose up -d
+docker-compose -f docker-compose-project-in-container.yml up -d
 docker exec -it test_assignment_drf-app-1 /bin/bash
 ./manage.py migrate
 ./manage.py test cityshops/tests/
